@@ -389,6 +389,55 @@ erro:error.message
 const PORT = process.env.PORT || 3000;
 
 
+// ===============================
+// HISTÓRICO
+// ===============================
+
+app.get("/historico/:telegram_id", async(req,res)=>{
+
+
+try{
+
+
+const {data,error}=await supabase
+.from("transactions")
+.select("*")
+.eq(
+"telegram_id",
+req.params.telegram_id
+)
+.order(
+"created_at",
+{
+ascending:false
+}
+);
+
+
+
+if(error) throw error;
+
+
+
+res.json(data);
+
+
+
+}catch(error){
+
+
+res.status(500).json({
+
+erro:error.message
+
+});
+
+
+}
+
+
+});
+
 app.listen(PORT, ()=>{
 
     console.log(
