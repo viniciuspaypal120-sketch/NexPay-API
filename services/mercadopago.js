@@ -1,117 +1,103 @@
-const { MercadoPagoConfig, Order } = require("mercadopago");
-const crypto = require("crypto");
-require("dotenv").config();
+const { MercadoPagoConfig, Payment } = require("mercadopago");
 
 
+// Configuração Mercado Pago
 const client = new MercadoPagoConfig({
 
-    accessToken: process.env.MERCADOPAGO_TOKEN
+    accessToken: process.env.MP_ACCESS_TOKEN
 
 });
 
 
-const order = new Order(client);
+const payment = new Payment(client);
 
 
 
-async function criarPix(valor) {
-
-    try {
 
 
-        const body = {
-
-            type: "online",
-
-            processing_mode: "automatic",
-
-            total_amount: Number(valor).toFixed(2),
+// CRIAR PIX
+async function criarPix(valor, telegram_id){
 
 
-            external_reference: "NEXPAY-" + Date.now(),
+    const pagamento = await payment.create({
+
+        body:{
 
 
-            payer: {
+            transaction_amount: Number(valor),
 
-                email: "test_user_123456@testuser.com",
 
-                first_name: "Cliente"
+            description:
+            "Depósito NexPay",
+
+
+
+            payment_method_id:
+            "pix",
+
+
+
+            payer:{
+
+
+                email:
+                `${telegram_id}@nexpay.com`
+
 
             },
 
 
-            transactions: {
+            metadata:{
 
-                payments: [
 
-                    {
+                telegram_id
 
-                        amount: Number(valor).toFixed(2),
-
-                        payment_method: {
-
-                            id: "pix",
-
-                            type: "bank_transfer"
-
-                        }
-
-                    }
-
-                ]
 
             }
 
 
-        };
+        }
 
-
-        const resposta = await order.create({
-
-            body,
-
-            requestOptions: {
-
-                idempotencyKey: crypto.randomUUID()
-
-            }
-
-        });
-
-
-        console.log("===== PIX CRIADO =====");
-
-        console.log(JSON.stringify(resposta, null, 2));
-
-
-        return resposta;
+    });
 
 
 
-    } catch(error) {
+    return pagamento;
 
-
-        console.log("===== ERRO MERCADO PAGO =====");
-
-
-        console.log(
-            error.cause ||
-            error.response?.data ||
-            error.message
-        );
-
-
-        throw error;
-
-
-    }
 
 }
 
 
 
+
+
+
+// CONSULTAR PAGAMENTO
+async function consultarPagamento(id){
+
+
+    const pagamento = await payment.get({
+
+        id
+
+    });
+
+
+    return pagamento;
+
+
+}
+
+
+
+
+
 module.exports = {
 
-    criarPix
+
+    criarPix,
+
+    consultarPagamento
+
 
 };

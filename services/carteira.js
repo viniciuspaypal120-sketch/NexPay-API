@@ -4,36 +4,26 @@ const supabase = require("../supabase");
 // CRIAR DEPÓSITO
 async function criarDeposito(telegram_id, valor) {
 
-
-    // Busca o usuário
-    const { data: usuario, error: erroUsuario } = await supabase
+    const { data: usuario, error } = await supabase
         .from("users")
         .select("id")
         .eq("telegram_id", telegram_id)
         .single();
 
 
-    if (erroUsuario || !usuario) {
-
+    if (error || !usuario) {
         throw new Error("Usuário não encontrado");
-
     }
 
 
-
-    // Cria a transação vinculada ao usuário
-    const { data, error } = await supabase
+    const { data, error: erroTransacao } = await supabase
         .from("transactions")
         .insert({
 
             user_id: usuario.id,
-
             telegram_id,
-
             tipo: "deposito",
-
             valor,
-
             status: "pendente"
 
         })
@@ -41,15 +31,12 @@ async function criarDeposito(telegram_id, valor) {
         .single();
 
 
-
-    if (error) throw error;
+    if (erroTransacao) throw erroTransacao;
 
 
     return data;
 
 }
-
-
 
 
 
@@ -64,20 +51,17 @@ async function adicionarSaldo(telegram_id, valor) {
         .single();
 
 
-
-    if (error || !usuario) {
-
+    if(error || !usuario){
         throw new Error("Usuário não encontrado");
-
     }
 
 
+    const novoSaldo =
+        Number(usuario.saldo) + Number(valor);
 
-    const novoSaldo = Number(usuario.saldo) + Number(valor);
 
 
-
-    await supabase
+    const { error:updateError } = await supabase
         .from("users")
         .update({
 
@@ -88,6 +72,9 @@ async function adicionarSaldo(telegram_id, valor) {
 
 
 
+    if(updateError) throw updateError;
+
+
     return novoSaldo;
 
 }
@@ -95,71 +82,66 @@ async function adicionarSaldo(telegram_id, valor) {
 
 
 
-
 // CONSULTAR SALDO
-async function consultarSaldo(telegram_id) {
+async function consultarSaldo(telegram_id){
 
 
-    const { data, error } = await supabase
-        .from("users")
-        .select("saldo")
-        .eq("telegram_id", telegram_id)
-        .single();
+    const {data,error}=await supabase
+    .from("users")
+    .select("saldo")
+    .eq("telegram_id",telegram_id)
+    .single();
 
 
 
-    if (error) throw error;
+    if(error) throw error;
 
 
     return data;
 
 }
 
+
+
+
 // CRIAR SAQUE
-async function criarSaque(telegram_id, valor) {
+async function criarSaque(telegram_id, valor){
 
 
-    const { data: usuario, error } = await supabase
-        .from("users")
-        .select("id, saldo")
-        .eq("telegram_id", telegram_id)
-        .single();
+    const {data:usuario,error}=await supabase
+    .from("users")
+    .select("id,saldo")
+    .eq("telegram_id",telegram_id)
+    .single();
 
 
 
     if(error || !usuario){
-
         throw new Error("Usuário não encontrado");
-
     }
 
 
 
     if(Number(usuario.saldo) < Number(valor)){
-
         throw new Error("Saldo insuficiente");
-
     }
 
 
 
-    const { data, error: erroSaque } = await supabase
-        .from("transactions")
-        .insert({
 
-            user_id: usuario.id,
+    const {data,error:erroSaque}=await supabase
+    .from("transactions")
+    .insert({
 
-            telegram_id,
+        user_id:usuario.id,
+        telegram_id,
+        tipo:"saque",
+        valor,
+        status:"pendente"
 
-            tipo: "saque",
-
-            valor,
-
-            status: "pendente"
-
-        })
-        .select()
-        .single();
+    })
+    .select()
+    .single();
 
 
 
@@ -171,15 +153,10 @@ async function criarSaque(telegram_id, valor) {
 }
 
 
+
+
+
 module.exports = {
-
-    criarDeposito,
-
-    adicionarSaldo,
-
-    consultarSaldo
-
-};module.exports = {
 
     criarDeposito,
     adicionarSaldo,
