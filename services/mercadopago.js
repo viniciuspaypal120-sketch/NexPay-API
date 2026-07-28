@@ -1,7 +1,6 @@
 const { MercadoPagoConfig, Payment } = require("mercadopago");
 
 
-// Configuração Mercado Pago
 const client = new MercadoPagoConfig({
 
     accessToken: process.env.MP_ACCESS_TOKEN
@@ -47,13 +46,18 @@ async function criarPix(valor, telegram_id){
             },
 
 
+
             metadata:{
 
 
                 telegram_id
 
 
-            }
+            },
+
+
+            notification_url:
+            "https://nexpay-api-jkjf.onrender.com/webhook/mercadopago"
 
 
         }
