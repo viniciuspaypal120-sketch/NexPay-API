@@ -1,0 +1,52 @@
+*{
+    box-sizing:border-box;
+}
+
+
+body{
+
+    margin:0;
+    background:#050505;
+    font-family:Inter,Arial;
+
+}
+
+
+.card{
+
+    background:#0d0d0d;
+    border:1px solid #222;
+    border-radius:16px;
+    padding:20px;
+
+    box-shadow:
+    0 0 20px rgba(168,85,247,0.15);
+
+    transition:.3s;
+
+}
+
+
+.card:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:
+    0 0 30px rgba(168,85,247,0.45);
+
+}
+
+
+button{
+
+    transition:.3s;
+
+}
+
+
+button:hover{
+
+    box-shadow:
+    0 0 20px #a855f7;
+
+}

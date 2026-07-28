@@ -1,0 +1,26 @@
+{
+  "name": "nexpay-api",
+  "version": "1.0.0",
+  "description": "API da NexPay",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "nexpay",
+    "gateway",
+    "payments"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.9",
+    "axios": "^1.18.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mercadopago": "^3.2.1",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
