@@ -187,496 +187,89 @@ erro:error.message
 // WEBHOOK MERCADO PAGO
 // ===============================
 
-
 app.post("/webhook/mercadopago", async(req,res)=>{
 
+    try{
 
-try{
 
+        const payment_id = req.query.id;
 
-const {
 
-type,
+        if(!payment_id){
 
-data
+            return res.sendStatus(200);
 
-}=req.body;
+        }
 
 
 
-if(type !== "payment"){
+        // Consulta pagamento no Mercado Pago
 
-return res.sendStatus(200);
+        const pagamento = await consultarPagamento(payment_id);
 
-}
 
 
+        if(pagamento.status === "approved"){
 
-const pagamento =
-await consultarPagamento(
-data.id
-);
 
+            const { data: transacao, error } = await supabase
+            .from("transactions")
+            .select("*")
+            .eq("payment_id", payment_id)
+            .single();
 
 
-if(pagamento.status !== "approved"){
 
-return res.sendStatus(200);
+            if(error) throw error;
 
-}
 
 
+            // Evita duplicar saldo
 
-const telegram_id =
-pagamento.metadata.telegram_id;
+            if(transacao.status !== "aprovado"){
 
 
 
-const {data:transacao,error}=await supabase
-.from("transactions")
-.select("*")
-.eq(
-"payment_id",
-pagamento.id
-)
-.single();
+                await supabase
+                .from("transactions")
+                .update({
 
+                    status:"aprovado"
 
+                })
+                .eq("payment_id", payment_id);
 
-if(error || !transacao){
 
-return res.sendStatus(200);
 
-}
+                await adicionarSaldo(
 
+                    transacao.telegram_id,
 
+                    transacao.valor
 
+                );
 
-if(transacao.status === "aprovado"){
 
-return res.sendStatus(200);
+            }
 
-}
 
+        }
 
 
 
-await supabase
-.from("transactions")
-.update({
+        res.sendStatus(200);
 
-status:"aprovado"
 
-})
-.eq(
-"id",
-transacao.id
-);
 
+    }catch(error){
 
 
+        console.log(error.message);
 
-await adicionarSaldo(
+        res.sendStatus(500);
 
-telegram_id,
 
-pagamento.transaction_amount
-
-);
-
-
-
-console.log(
-"Pagamento aprovado",
-telegram_id
-);
-
-
-
-res.sendStatus(200);
-
-
-
-}catch(error){
-
-
-console.log(error);
-
-res.sendStatus(500);
-
-
-}
-
-
-});
-
-
-
-
-
-
-
-
-// ===============================
-// SALDO
-// ===============================
-
-app.get("/saldo/:telegram_id", async(req,res)=>{
-
-
-try{
-
-
-const saldo =
-await consultarSaldo(
-req.params.telegram_id
-);
-
-
-
-res.json(saldo);
-
-
-
-}catch(error){
-
-res.status(500).json({
-
-erro:error.message
-
-});
-
-}
-
-
-});
-
-
-
-
-
-
-// ===============================
-// USUARIO
-// ===============================
-
-
-app.get("/usuario/:telegram_id", async(req,res)=>{
-
-
-const {data,error}=await supabase
-.from("users")
-.select("*")
-.eq(
-"telegram_id",
-req.params.telegram_id
-)
-.single();
-
-
-
-if(error){
-
-return res.status(500).json({
-
-erro:error.message
-
-});
-
-}
-
-
-res.json(data);
-
-
-});
-
-
-
-
-
-
-
-// ===============================
-// HISTÓRICO
-// ===============================
-
-
-app.get("/historico/:telegram_id", async(req,res)=>{
-
-
-try{
-
-
-const {data,error}=await supabase
-.from("transactions")
-.select("*")
-.eq(
-"telegram_id",
-req.params.telegram_id
-)
-.order(
-"created_at",
-{
-ascending:false
-}
-);
-
-
-
-if(error) throw error;
-
-
-
-res.json(data);
-
-
-
-}catch(error){
-
-
-res.status(500).json({
-
-erro:error.message
-
-});
-
-
-}
-
-
-});
-
-
-
-
-
-
-// ===============================
-// CRIAR SAQUE
-// ===============================
-
-
-app.post("/saque", async(req,res)=>{
-
-
-try{
-
-
-const {
-
-telegram_id,
-
-valor
-
-}=req.body;
-
-
-
-const saque =
-await criarSaque(
-telegram_id,
-valor
-);
-
-
-
-res.json({
-
-mensagem:"Saque criado",
-
-saque
-
-});
-
-
-
-}catch(error){
-
-
-res.status(500).json({
-
-erro:error.message
-
-});
-
-
-}
-
-
-});
-
-
-
-
-
-
-
-// ===============================
-// ADMIN SAQUES
-// ===============================
-
-
-app.get("/admin/saques", async(req,res)=>{
-
-
-const {data,error}=await supabase
-.from("transactions")
-.select("*")
-.eq(
-"tipo",
-"saque"
-)
-.eq(
-"status",
-"pendente"
-);
-
-
-
-if(error){
-
-return res.status(500).json({
-
-erro:error.message
-
-});
-
-}
-
-
-
-res.json(data);
-
-
-
-});
-
-
-
-
-
-
-
-// ===============================
-// APROVAR SAQUE
-// ===============================
-
-
-app.post("/admin/aprovar-saque/:id", async(req,res)=>{
-
-
-try{
-
-
-const {
-
-data:saque
-
-}=await supabase
-.from("transactions")
-.select("*")
-.eq(
-"id",
-req.params.id
-)
-.single();
-
-
-
-await supabase
-.from("transactions")
-.update({
-
-status:"aprovado"
-
-})
-.eq(
-"id",
-req.params.id
-);
-
-
-
-const {data:usuario}=await supabase
-.from("users")
-.select("saldo")
-.eq(
-"telegram_id",
-saque.telegram_id
-)
-.single();
-
-
-
-const novoSaldo =
-Number(usuario.saldo)
--
-Number(saque.valor);
-
-
-
-await supabase
-.from("users")
-.update({
-
-saldo:novoSaldo
-
-})
-.eq(
-"telegram_id",
-saque.telegram_id
-);
-
-
-
-res.json({
-
-mensagem:"Saque aprovado",
-
-novoSaldo
-
-});
-
-
-
-}catch(error){
-
-
-res.status(500).json({
-
-erro:error.message
-
-});
-
-
-}
-
-
-});
-
-
-
-
-
-
-
-// ===============================
-// SERVIDOR
-// ===============================
-
-
-const PORT =
-process.env.PORT || 3000;
-
-
-
-app.listen(PORT,()=>{
-
-
-console.log(
-`NexPay API rodando na porta ${PORT}`
-);
+    }
 
 
 });
